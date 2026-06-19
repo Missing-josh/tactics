@@ -14,13 +14,35 @@
         body {
             background-color: #000000;
             color: #FFFF00; /* High-visibility yellow */
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
             padding: 10px;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+        }
+
+        /* Permission Overlay Overlay Screen */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #start-btn {
+            background: #FFFF00;
+            color: #000000;
+            border: none;
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
         }
 
         /* Top Section: Massive Compass Header */
@@ -61,7 +83,7 @@
             position: absolute;
             width: 4px;
             height: 100%;
-            background-color: #FF3B30; /* Red lubber line for targeting */
+            background-color: #FF3B30; /* Red alignment line */
             z-index: 10;
         }
         #tape-scale {
@@ -70,7 +92,6 @@
             white-space: nowrap;
             font-size: 24px;
             font-weight: bold;
-            transition: transform 0.1s linear;
         }
         .tape-mark {
             width: 60px;
@@ -113,6 +134,10 @@
 </head>
 <body>
 
+    <div id="overlay">
+        <button id="start-btn" onclick="initSensors()">START INSTRUMENTS</button>
+    </div>
+
     <div class="compass-header">
         <div class="compass-title">Heading</div>
         <div id="compass">000°</div>
@@ -135,7 +160,6 @@
     </div>
 
     <script>
-        // Register Service Worker for Offline Availability
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
@@ -145,10 +169,13 @@
         const cogDisplay = document.getElementById('cog');
         const sogDisplay = document.getElementById('sog');
 
-        // Dynamically build a wide 360-degree compass tape array
+        // Low-pass filter smoothing variables
+        let smoothedHeading = 0;
+        const filterFactor = 0.2; // Lower = smoother but slower; Higher = faster updates.
+
+        // Generate full circular compass scale matrix
         function initCompassTape() {
             let html = '';
-            // Generate headings wrapped sequentially to allow smooth sliding
             for (let i = -180; i <= 540; i += 10) {
                 let heading = (i + 360) % 360;
                 let display = heading === 0 ? 'N' : heading === 90 ? 'E' : heading === 180 ? 'S' : heading === 270 ? 'W' : heading;
@@ -158,47 +185,80 @@
         }
         initCompassTape();
 
-        // Device Orientation Event (Magnetometer)
-        window.addEventListener('deviceorientation', function(event) {
-            if (event.webkitCompassHeading !== undefined) {
-                let heading = Math.round(event.webkitCompassHeading);
+        // Triggered via user click to pass security restrictions
+        function initSensors() {
+            document.getElementById('overlay').style.display = 'none';
+
+            // Check and prompt for Device Orientation API (iOS 13+ handles explicit requests, iOS 10 defaults straight to execution)
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation);
+            }
+
+            // Fire GPS tracking engine
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(handleGPS, handleGPSError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                });
+            } else {
+                alert("GPS functionality missing from host system.");
+            }
+        }
+
+        function handleOrientation(event) {
+            let currentHeading = event.webkitCompassHeading;
+            if (currentHeading !== undefined && currentHeading !== null) {
                 
-                // Update Main Readout
-                compassDisplay.innerText = String(heading).padStart(3, '0') + '°';
-                
-                // Slide the visual tape layout smoothly
-                // 60px per 10 degrees = 6px per degree. Offset accounts for center alignment.
-                let tapeOffset = -(heading * 6) - 1080; 
+                // Math fix to prevent jitter when crossing North (359° to 0°)
+                if (Math.abs(currentHeading - smoothedHeading) > 180) {
+                    if (currentHeading > smoothedHeading) smoothedHeading += 360;
+                    else smoothedHeading -= 360;
+                }
+
+                // Apply exponential moving average calculation
+                smoothedHeading = smoothedHeading + filterFactor * (currentHeading - smoothedHeading);
+                let finalHeading = (Math.round(smoothedHeading) + 360) % 360;
+
+                // Update Display Text
+                compassDisplay.innerText = String(finalHeading).padStart(3, '0') + '°';
+
+                // Shift graphical scale track layout
+                let tapeOffset = -(finalHeading * 6) - 1080; 
                 tapeScale.style.transform = `translateX(${tapeOffset}px)`;
             }
-        });
+        }
 
-        // GPS Satellite Tracking (Offline)
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(function(position) {
-                let coords = position.coords;
+        function handleGPS(position) {
+            let coords = position.coords;
 
-                // Speed Over Ground Conversion
-                if (coords.speed !== null && coords.speed >= 0) {
-                    let knots = (coords.speed * 1.94384).toFixed(1);
-                    sogDisplay.innerText = knots;
-                } else {
-                    sogDisplay.innerText = "0.0";
-                }
+            // Compute Speed Over Ground (Meters per Second -> Knots)
+            if (coords.speed !== null && coords.speed >= 0) {
+                let knots = (coords.speed * 1.94384).toFixed(1);
+                sogDisplay.innerText = knots;
+            } else {
+                sogDisplay.innerText = "0.0";
+            }
 
-                // Course Over Ground Conversion
-                if (coords.heading !== null && coords.heading >= 0) {
-                    let cog = Math.round(coords.heading);
-                    cogDisplay.innerText = String(cog).padStart(3, '0') + '°';
-                } else {
-                    cogDisplay.innerText = "---°";
-                }
-            }, function(error) {
-                console.log("GPS Error: " + error.message);
-            }, {
-                enableHighAccuracy: true,
-                maximumAge: 0
-            });
+            // Compute Course Over Ground (Direct movement vector)
+            if (coords.heading !== null && coords.heading >= 0) {
+                let cog = Math.round(coords.heading);
+                cogDisplay.innerText = String(cog).padStart(3, '0') + '°';
+            } else {
+                cogDisplay.innerText = "---°";
+            }
+        }
+
+        function handleGPSError(error) {
+            console.warn(`Satellite Exception (${error.code}): ${error.message}`);
         }
     </script>
 </body>
