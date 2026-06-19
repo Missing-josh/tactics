@@ -5,86 +5,200 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Race Tactics</title>
+    <title>Race Master Tactical</title>
     <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
         body {
             background-color: #000000;
-            color: #FFFF00; /* Bright Yellow */
-            font-family: -apple-system, sans-serif;
+            color: #FFFF00; /* High-visibility yellow */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            text-align: center;
+            padding: 10px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
-        #compass {
-            font-size: 80px;
-            font-weight: bold;
-            margin-top: 40px;
-        }
-        .data-container {
+
+        /* Top Section: Massive Compass Header */
+        .compass-header {
+            flex: 1.5;
             display: flex;
-            justify-content: space-around;
-            margin-top: 50px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 4px solid #FFFF00;
+            position: relative;
+        }
+        .compass-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: absolute;
+            top: 5px;
+        }
+        #compass {
+            font-size: 110px;
+            font-weight: 900;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Middle Section: Tactical Visual Tape Indicator */
+        .tape-container {
+            flex: 0.6;
+            border-bottom: 4px solid #FFFF00;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .center-lubber {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background-color: #FF3B30; /* Red lubber line for targeting */
+            z-index: 10;
+        }
+        #tape-scale {
+            display: flex;
+            position: absolute;
+            white-space: nowrap;
+            font-size: 24px;
+            font-weight: bold;
+            transition: transform 0.1s linear;
+        }
+        .tape-mark {
+            width: 60px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        /* Bottom Section: Grid Data Fields */
+        .grid-container {
+            flex: 1.5;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr;
+            gap: 4px;
+            padding-top: 4px;
         }
         .data-box {
-            font-size: 28px;
+            background: #111111;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .data-label {
+            font-size: 14px;
+            color: #8E8E93;
             font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .data-value {
+            font-size: 40px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
         }
     </style>
 </head>
 <body>
 
-    <div id="compass">000°</div>
+    <div class="compass-header">
+        <div class="compass-title">Heading</div>
+        <div id="compass">000°</div>
+    </div>
 
-    <div class="data-container">
-        <div class="data-box" id="cog">COG: ---°</div>
-        <div class="data-box" id="sog">SOG: 0.0 kt</div>
+    <div class="tape-container">
+        <div class="center-lubber"></div>
+        <div id="tape-scale"></div>
+    </div>
+
+    <div class="grid-container">
+        <div class="data-box">
+            <div class="data-label">COG</div>
+            <div class="data-value" id="cog">---°</div>
+        </div>
+        <div class="data-box">
+            <div class="data-label">SOG (KTS)</div>
+            <div class="data-value" id="sog">0.0</div>
+        </div>
     </div>
 
     <script>
-        // 1. Register Service Worker for Offline Use
+        // Register Service Worker for Offline Availability
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
 
-        // 2. Compass Tracking (Device Orientation)
-        // iOS 10 and older natively support webkitCompassHeading without permission prompts
+        const compassDisplay = document.getElementById('compass');
+        const tapeScale = document.getElementById('tape-scale');
+        const cogDisplay = document.getElementById('cog');
+        const sogDisplay = document.getElementById('sog');
+
+        // Dynamically build a wide 360-degree compass tape array
+        function initCompassTape() {
+            let html = '';
+            // Generate headings wrapped sequentially to allow smooth sliding
+            for (let i = -180; i <= 540; i += 10) {
+                let heading = (i + 360) % 360;
+                let display = heading === 0 ? 'N' : heading === 90 ? 'E' : heading === 180 ? 'S' : heading === 270 ? 'W' : heading;
+                html += `<div class="tape-mark">${display}</div>`;
+            }
+            tapeScale.innerHTML = html;
+        }
+        initCompassTape();
+
+        // Device Orientation Event (Magnetometer)
         window.addEventListener('deviceorientation', function(event) {
             if (event.webkitCompassHeading !== undefined) {
                 let heading = Math.round(event.webkitCompassHeading);
-                // Format to 3 digits (e.g., 007°)
-                document.getElementById('compass').innerText = String(heading).padStart(3, '0') + '°';
+                
+                // Update Main Readout
+                compassDisplay.innerText = String(heading).padStart(3, '0') + '°';
+                
+                // Slide the visual tape layout smoothly
+                // 60px per 10 degrees = 6px per degree. Offset accounts for center alignment.
+                let tapeOffset = -(heading * 6) - 1080; 
+                tapeScale.style.transform = `translateX(${tapeOffset}px)`;
             }
         });
 
-        // 3. GPS Tracking (SOG & COG)
+        // GPS Satellite Tracking (Offline)
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(function(position) {
                 let coords = position.coords;
 
-                // SOG: Convert meters/second to Knots
+                // Speed Over Ground Conversion
                 if (coords.speed !== null && coords.speed >= 0) {
                     let knots = (coords.speed * 1.94384).toFixed(1);
-                    document.getElementById('sog').innerText = 'SOG: ' + knots + ' kt';
+                    sogDisplay.innerText = knots;
                 } else {
-                    document.getElementById('sog').innerText = 'SOG: 0.0 kt';
+                    sogDisplay.innerText = "0.0";
                 }
 
-                // COG: Heading over ground
+                // Course Over Ground Conversion
                 if (coords.heading !== null && coords.heading >= 0) {
                     let cog = Math.round(coords.heading);
-                    document.getElementById('cog').innerText = 'COG: ' + String(cog).padStart(3, '0') + '°';
+                    cogDisplay.innerText = String(cog).padStart(3, '0') + '°';
                 } else {
-                    document.getElementById('cog').innerText = 'COG: ---°';
+                    cogDisplay.innerText = "---°";
                 }
             }, function(error) {
                 console.log("GPS Error: " + error.message);
             }, {
-                enableHighAccuracy: true, // Forces phone to use hardware GPS satellites
+                enableHighAccuracy: true,
                 maximumAge: 0
             });
-        } else {
-            alert("GPS not supported on this device.");
         }
     </script>
 </body>
