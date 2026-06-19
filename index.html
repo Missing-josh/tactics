@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Race Master Tactical</title>
+    <title>Race Master Pro</title>
     <style>
         * {
             box-sizing: border-box;
@@ -16,21 +16,20 @@
             color: #FFFF00; /* High-visibility yellow */
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 8px;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Permission Overlay Overlay Screen */
+        /* Permission Lock Screen */
         #overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: #000000;
             z-index: 100;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
         }
@@ -38,41 +37,32 @@
             background: #FFFF00;
             color: #000000;
             border: none;
-            padding: 20px 40px;
-            font-size: 24px;
+            padding: 25px 50px;
+            font-size: 26px;
             font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
+            border-radius: 12px;
         }
 
-        /* Top Section: Massive Compass Header */
+        /* Section 1: Massive Compass Heading */
         .compass-header {
-            flex: 1.5;
+            flex: 1.2;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-bottom: 4px solid #FFFF00;
+            border-bottom: 3px solid #FFFF00;
             position: relative;
         }
-        .compass-title {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            position: absolute;
-            top: 5px;
-        }
         #compass {
-            font-size: 110px;
+            font-size: 90px;
             font-weight: 900;
-            line-height: 1;
             font-variant-numeric: tabular-nums;
         }
 
-        /* Middle Section: Tactical Visual Tape Indicator */
+        /* Section 2: Visual Compass Tape */
         .tape-container {
-            flex: 0.6;
-            border-bottom: 4px solid #FFFF00;
+            flex: 0.5;
+            border-bottom: 3px solid #FFFF00;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -83,14 +73,14 @@
             position: absolute;
             width: 4px;
             height: 100%;
-            background-color: #FF3B30; /* Red alignment line */
+            background-color: #FF3B30;
             z-index: 10;
         }
         #tape-scale {
             display: flex;
             position: absolute;
             white-space: nowrap;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
         }
         .tape-mark {
@@ -99,36 +89,70 @@
             display: inline-block;
         }
 
-        /* Bottom Section: Grid Data Fields */
+        /* Section 3: Navigation Grid (COG & SOG) */
         .grid-container {
-            flex: 1.5;
+            flex: 1;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr;
             gap: 4px;
-            padding-top: 4px;
+            padding: 4px 0;
+            border-bottom: 3px solid #FFFF00;
         }
         .data-box {
             background: #111111;
-            border: 2px solid #333333;
-            border-radius: 8px;
+            border: 1px solid #333333;
+            border-radius: 6px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 10px;
         }
         .data-label {
-            font-size: 14px;
+            font-size: 12px;
             color: #8E8E93;
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 5px;
         }
         .data-value {
-            font-size: 40px;
+            font-size: 36px;
             font-weight: 800;
             font-variant-numeric: tabular-nums;
+        }
+
+        /* Section 4: Advanced Race Timer Control Block */
+        .timer-container {
+            flex: 1.3;
+            background: #111111;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px;
+        }
+        #timer-display {
+            font-size: 55px;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+        }
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .timer-btn {
+            flex: 1;
+            background: #222222;
+            color: #FFFF00;
+            border: 2px solid #FFFF00;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+        }
+        .timer-btn:active {
+            background: #FFFF00;
+            color: #000000;
         }
     </style>
 </head>
@@ -139,7 +163,6 @@
     </div>
 
     <div class="compass-header">
-        <div class="compass-title">Heading</div>
         <div id="compass">000°</div>
     </div>
 
@@ -159,21 +182,32 @@
         </div>
     </div>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
+    <div class="timer-container">
+        <div id="timer-display">05:00</div>
+        <div class="timer-controls">
+            <button class="timer-btn" onclick="adjustTimer(60)">+1M</button>
+            <button class="timer-btn" onclick="adjustTimer(-60)">-1M</button>
+            <button class="timer-btn" id="run-btn" onclick="toggleTimer()" style="background: #FFFF00; color: #000000;">START</button>
+            <button class="timer-btn" onclick="syncTimer()">SYNC</button>
+        </div>
+    </div>
 
+    <script>
+        // DOM pointers
         const compassDisplay = document.getElementById('compass');
         const tapeScale = document.getElementById('tape-scale');
         const cogDisplay = document.getElementById('cog');
         const sogDisplay = document.getElementById('sog');
+        const timerDisplay = document.getElementById('timer-display');
+        const runBtn = document.getElementById('run-btn');
 
-        // Low-pass filter smoothing variables
+        // State Machine Core variables
         let smoothedHeading = 0;
-        const filterFactor = 0.2; // Lower = smoother but slower; Higher = faster updates.
+        const filterFactor = 0.25; 
+        let timerSeconds = 300; // 5-minute initial start sequences standard
+        let timerInterval = null;
+        let audioCtx = null;
 
-        // Generate full circular compass scale matrix
         function initCompassTape() {
             let html = '';
             for (let i = -180; i <= 540; i += 10) {
@@ -185,53 +219,35 @@
         }
         initCompassTape();
 
-        // Triggered via user click to pass security restrictions
         function initSensors() {
             document.getElementById('overlay').style.display = 'none';
+            
+            // Instantiates hardware sound synthesizer context safely inside a user event handler
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-            // Check and prompt for Device Orientation API (iOS 13+ handles explicit requests, iOS 10 defaults straight to execution)
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            window.addEventListener('deviceorientation', handleOrientation);
-                        }
-                    })
-                    .catch(console.error);
+                DeviceOrientationEvent.requestPermission().then(state => {
+                    if (state === 'granted') window.addEventListener('deviceorientation', handleOrientation);
+                });
             } else {
                 window.addEventListener('deviceorientation', handleOrientation);
             }
 
-            // Fire GPS tracking engine
             if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(handleGPS, handleGPSError, {
-                    enableHighAccuracy: true,
-                    maximumAge: 0,
-                    timeout: 5000
-                });
-            } else {
-                alert("GPS functionality missing from host system.");
+                navigator.geolocation.watchPosition(handleGPS, null, { enableHighAccuracy: true, maximumAge: 0 });
             }
         }
 
         function handleOrientation(event) {
             let currentHeading = event.webkitCompassHeading;
             if (currentHeading !== undefined && currentHeading !== null) {
-                
-                // Math fix to prevent jitter when crossing North (359° to 0°)
                 if (Math.abs(currentHeading - smoothedHeading) > 180) {
                     if (currentHeading > smoothedHeading) smoothedHeading += 360;
                     else smoothedHeading -= 360;
                 }
-
-                // Apply exponential moving average calculation
                 smoothedHeading = smoothedHeading + filterFactor * (currentHeading - smoothedHeading);
                 let finalHeading = (Math.round(smoothedHeading) + 360) % 360;
-
-                // Update Display Text
                 compassDisplay.innerText = String(finalHeading).padStart(3, '0') + '°';
-
-                // Shift graphical scale track layout
                 let tapeOffset = -(finalHeading * 6) - 1080; 
                 tapeScale.style.transform = `translateX(${tapeOffset}px)`;
             }
@@ -239,26 +255,116 @@
 
         function handleGPS(position) {
             let coords = position.coords;
-
-            // Compute Speed Over Ground (Meters per Second -> Knots)
             if (coords.speed !== null && coords.speed >= 0) {
-                let knots = (coords.speed * 1.94384).toFixed(1);
-                sogDisplay.innerText = knots;
-            } else {
-                sogDisplay.innerText = "0.0";
+                sogDisplay.innerText = (coords.speed * 1.94384).toFixed(1);
             }
-
-            // Compute Course Over Ground (Direct movement vector)
             if (coords.heading !== null && coords.heading >= 0) {
-                let cog = Math.round(coords.heading);
-                cogDisplay.innerText = String(cog).padStart(3, '0') + '°';
-            } else {
-                cogDisplay.innerText = "---°";
+                cogDisplay.innerText = String(Math.round(coords.heading)).padStart(3, '0') + '°';
             }
         }
 
-        function handleGPSError(error) {
-            console.warn(`Satellite Exception (${error.code}): ${error.message}`);
+        /* --- Audio Sequence Architecture --- */
+
+        // Synthetic Horn Oscillator Generator
+        function fireHorn(duration) {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gainNode = audioCtx.createGain();
+            
+            osc.type = 'sawtooth'; // Heavy mechanical sounding wave shape
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime); // Low fundamental race frequency
+            
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        // Voice callout engine using local synthesizer system (Offline)
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.1; // Slightly sped up to keep synchronization snappy
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        /* --- Timer Logic Matrix --- */
+        function updateTimerUI() {
+            let minutes = Math.floor(Math.abs(timerSeconds) / 60);
+            let seconds = Math.abs(timerSeconds) % 60;
+            let sign = timerSeconds < 0 ? "-" : "";
+            timerDisplay.innerText = `${sign}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function adjustTimer(amount) {
+            timerSeconds = Math.max(0, timerSeconds + amount);
+            updateTimerUI();
+        }
+
+        function syncTimer() {
+            // Standard regatta synchronization: rounds down to the nearest whole minute
+            if (timerInterval) {
+                timerSeconds = Math.floor(timerSeconds / 60) * 60;
+                updateTimerUI();
+                speakText("Synchronized");
+            }
+        }
+
+        function toggleTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                runBtn.innerText = "START";
+                runBtn.style.background = "#FFFF00";
+            } else {
+                runBtn.innerText = "STOP";
+                runBtn.style.background = "#FF3B30"; // Red when active
+                timerInterval = setInterval(runTick, 1000);
+            }
+        }
+
+        function runTick() {
+            timerSeconds--;
+            updateTimerUI();
+
+            let absSec = Math.abs(timerSeconds);
+            let mins = absSec / 60;
+
+            if (timerSeconds > 0) {
+                // Whole Minute Rule
+                if (absSec % 60 === 0) {
+                    fireHorn(1.2);
+                    speakText(`${mins} minutes`);
+                } 
+                // 30 Second Rule
+                else if (absSec === 30) {
+                    fireHorn(0.8);
+                    speakText("Thirty seconds");
+                } 
+                // Under 30s whole minute warnings
+                else if (absSec === 45 || absSec === 15) {
+                    speakText(`${absSec} seconds`);
+                }
+                // Final 10-Second Countdown Sequence
+                else if (absSec <= 10) {
+                    fireHorn(0.2); // short blip
+                    speakText(`${absSec}`);
+                }
+            } else if (timerSeconds === 0) {
+                // START GUN
+                fireHorn(2.5);
+                speakText("Start. Clear line.");
+            } else {
+                // Post-start counting upward
+                if (absSec % 60 === 0) {
+                    speakText(`Plus ${mins}`);
+                }
+            }
         }
     </script>
 </body>
