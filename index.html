@@ -16,14 +16,13 @@
             color: #FFFF00; /* High-visibility yellow */
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 8px;
+            padding: 0;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
+            width: 100vw;
             overflow: hidden;
         }
 
-        /* Permission Lock Screen */
+        /* System Lock Screen Overlay */
         #overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -43,26 +42,81 @@
             border-radius: 12px;
         }
 
-        /* Section 1: Massive Compass Heading */
-        .compass-header {
-            flex: 1.2;
+        /* SCREEN 1: FULL SCREEN TIMER MODE */
+        #timer-screen {
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            padding: 20px;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 10;
+            background: #000000;
+        }
+        .timer-title {
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #8E8E93;
+            margin-top: 20px;
+        }
+        #timer-display {
+            font-size: 130px; /* Massive display */
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .timer-btn {
+            flex: 1;
+            background: #111111;
+            color: #FFFF00;
+            border: 3px solid #FFFF00;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+        .timer-btn:active {
+            background: #FFFF00;
+            color: #000000;
+        }
+
+        /* SCREEN 2: FULL SCREEN TACTICAL MODE (Hidden initially) */
+        #tactical-screen {
+            display: none; /* Controlled via JS state */
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            padding: 10px;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 5;
+            background: #000000;
+        }
+        .compass-header {
+            flex: 1.8;
+            display: flex;
             justify-content: center;
             align-items: center;
-            border-bottom: 3px solid #FFFF00;
-            position: relative;
+            border-bottom: 4px solid #FFFF00;
         }
         #compass {
-            font-size: 90px;
+            font-size: 120px;
             font-weight: 900;
             font-variant-numeric: tabular-nums;
         }
-
-        /* Section 2: Visual Compass Tape */
         .tape-container {
-            flex: 0.5;
-            border-bottom: 3px solid #FFFF00;
+            flex: 0.6;
+            border-bottom: 4px solid #FFFF00;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -80,7 +134,7 @@
             display: flex;
             position: absolute;
             white-space: nowrap;
-            font-size: 22px;
+            font-size: 24px;
             font-weight: bold;
         }
         .tape-mark {
@@ -88,71 +142,32 @@
             text-align: center;
             display: inline-block;
         }
-
-        /* Section 3: Navigation Grid (COG & SOG) */
         .grid-container {
-            flex: 1;
+            flex: 1.5;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 4px;
-            padding: 4px 0;
-            border-bottom: 3px solid #FFFF00;
+            gap: 6px;
+            padding-top: 6px;
         }
         .data-box {
             background: #111111;
-            border: 1px solid #333333;
-            border-radius: 6px;
+            border: 2px solid #333333;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
         .data-label {
-            font-size: 12px;
+            font-size: 14px;
             color: #8E8E93;
             font-weight: bold;
             text-transform: uppercase;
         }
         .data-value {
-            font-size: 36px;
+            font-size: 46px;
             font-weight: 800;
             font-variant-numeric: tabular-nums;
-        }
-
-        /* Section 4: Advanced Race Timer Control Block */
-        .timer-container {
-            flex: 1.3;
-            background: #111111;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            align-items: center;
-            padding: 8px;
-        }
-        #timer-display {
-            font-size: 55px;
-            font-weight: 900;
-            font-variant-numeric: tabular-nums;
-        }
-        .timer-controls {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-        .timer-btn {
-            flex: 1;
-            background: #222222;
-            color: #FFFF00;
-            border: 2px solid #FFFF00;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-        }
-        .timer-btn:active {
-            background: #FFFF00;
-            color: #000000;
         }
     </style>
 </head>
@@ -162,27 +177,8 @@
         <button id="start-btn" onclick="initSensors()">START INSTRUMENTS</button>
     </div>
 
-    <div class="compass-header">
-        <div id="compass">000°</div>
-    </div>
-
-    <div class="tape-container">
-        <div class="center-lubber"></div>
-        <div id="tape-scale"></div>
-    </div>
-
-    <div class="grid-container">
-        <div class="data-box">
-            <div class="data-label">COG</div>
-            <div class="data-value" id="cog">---°</div>
-        </div>
-        <div class="data-box">
-            <div class="data-label">SOG (KTS)</div>
-            <div class="data-value" id="sog">0.0</div>
-        </div>
-    </div>
-
-    <div class="timer-container">
+    <div id="timer-screen">
+        <div class="timer-title">Start Sequence</div>
         <div id="timer-display">05:00</div>
         <div class="timer-controls">
             <button class="timer-btn" onclick="adjustTimer(60)">+1M</button>
@@ -192,8 +188,30 @@
         </div>
     </div>
 
+    <div id="tactical-screen">
+        <div class="compass-header">
+            <div id="compass">000°</div>
+        </div>
+        <div class="tape-container">
+            <div class="center-lubber"></div>
+            <div id="tape-scale"></div>
+        </div>
+        <div class="grid-container">
+            <div class="data-box">
+                <div class="data-label">COG</div>
+                <div class="data-value" id="cog">---°</div>
+            </div>
+            <div class="data-box">
+                <div class="data-label">SOG (KTS)</div>
+                <div class="data-value" id="sog">0.0</div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // DOM pointers
+        // DOM targets
+        const timerScreen = document.getElementById('timer-screen');
+        const tacticalScreen = document.getElementById('tactical-screen');
         const compassDisplay = document.getElementById('compass');
         const tapeScale = document.getElementById('tape-scale');
         const cogDisplay = document.getElementById('cog');
@@ -201,10 +219,10 @@
         const timerDisplay = document.getElementById('timer-display');
         const runBtn = document.getElementById('run-btn');
 
-        // State Machine Core variables
+        // Math/Logic state machines
         let smoothedHeading = 0;
         const filterFactor = 0.25; 
-        let timerSeconds = 300; // 5-minute initial start sequences standard
+        let timerSeconds = 300; 
         let timerInterval = null;
         let audioCtx = null;
 
@@ -221,8 +239,6 @@
 
         function initSensors() {
             document.getElementById('overlay').style.display = 'none';
-            
-            // Instantiates hardware sound synthesizer context safely inside a user event handler
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -263,42 +279,32 @@
             }
         }
 
-        /* --- Audio Sequence Architecture --- */
-
-        // Synthetic Horn Oscillator Generator
         function fireHorn(duration) {
             if (!audioCtx) return;
             let osc = audioCtx.createOscillator();
             let gainNode = audioCtx.createGain();
-            
-            osc.type = 'sawtooth'; // Heavy mechanical sounding wave shape
-            osc.frequency.setValueAtTime(220, audioCtx.currentTime); // Low fundamental race frequency
-            
+            osc.type = 'sawtooth'; 
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime); 
             gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            
             osc.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
             osc.start();
             osc.stop(audioCtx.currentTime + duration);
         }
 
-        // Voice callout engine using local synthesizer system (Offline)
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 let utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.1; // Slightly sped up to keep synchronization snappy
+                utterance.rate = 1.1; 
                 window.speechSynthesis.speak(utterance);
             }
         }
 
-        /* --- Timer Logic Matrix --- */
         function updateTimerUI() {
-            let minutes = Math.floor(Math.abs(timerSeconds) / 60);
-            let seconds = Math.abs(timerSeconds) % 60;
-            let sign = timerSeconds < 0 ? "-" : "";
-            timerDisplay.innerText = `${sign}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            let minutes = Math.floor(timerSeconds / 60);
+            let seconds = timerSeconds % 60;
+            timerDisplay.innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
 
         function adjustTimer(amount) {
@@ -307,8 +313,7 @@
         }
 
         function syncTimer() {
-            // Standard regatta synchronization: rounds down to the nearest whole minute
-            if (timerInterval) {
+            if (timerInterval && timerSeconds > 0) {
                 timerSeconds = Math.floor(timerSeconds / 60) * 60;
                 updateTimerUI();
                 speakText("Synchronized");
@@ -323,47 +328,45 @@
                 runBtn.style.background = "#FFFF00";
             } else {
                 runBtn.innerText = "STOP";
-                runBtn.style.background = "#FF3B30"; // Red when active
+                runBtn.style.background = "#FF3B30";
                 timerInterval = setInterval(runTick, 1000);
             }
+        }
+
+        function switchToTacticalMode() {
+            // Kill countdown processing loops
+            clearInterval(timerInterval);
+            timerInterval = null;
+            
+            // Clean interface swap
+            timerScreen.style.display = 'none';
+            tacticalScreen.style.display = 'flex';
         }
 
         function runTick() {
             timerSeconds--;
             updateTimerUI();
 
-            let absSec = Math.abs(timerSeconds);
-            let mins = absSec / 60;
-
             if (timerSeconds > 0) {
-                // Whole Minute Rule
-                if (absSec % 60 === 0) {
+                if (timerSeconds % 60 === 0) {
                     fireHorn(1.2);
-                    speakText(`${mins} minutes`);
-                } 
-                // 30 Second Rule
-                else if (absSec === 30) {
+                    speakText(`${timerSeconds / 60} minutes`);
+                } else if (timerSeconds === 30) {
                     fireHorn(0.8);
                     speakText("Thirty seconds");
-                } 
-                // Under 30s whole minute warnings
-                else if (absSec === 45 || absSec === 15) {
-                    speakText(`${absSec} seconds`);
-                }
-                // Final 10-Second Countdown Sequence
-                else if (absSec <= 10) {
-                    fireHorn(0.2); // short blip
-                    speakText(`${absSec}`);
+                } else if (timerSeconds === 45 || timerSeconds === 15) {
+                    speakText(`${timerSeconds} seconds`);
+                } else if (timerSeconds <= 10) {
+                    fireHorn(0.2);
+                    speakText(`${timerSeconds}`);
                 }
             } else if (timerSeconds === 0) {
-                // START GUN
+                // START SIGNAL MATCHED
                 fireHorn(2.5);
-                speakText("Start. Clear line.");
-            } else {
-                // Post-start counting upward
-                if (absSec % 60 === 0) {
-                    speakText(`Plus ${mins}`);
-                }
+                speakText("Start");
+                
+                // Switch interface immediately
+                switchToTacticalMode();
             }
         }
     </script>
