@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Race Tactics</title>
+    <style>
+        body {
+            background-color: #000000;
+            color: #FFFF00; /* Bright Yellow */
+            font-family: -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            overflow: hidden;
+        }
+        #compass {
+            font-size: 80px;
+            font-weight: bold;
+            margin-top: 40px;
+        }
+        .data-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 50px;
+        }
+        .data-box {
+            font-size: 28px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="compass">000°</div>
+
+    <div class="data-container">
+        <div class="data-box" id="cog">COG: ---°</div>
+        <div class="data-box" id="sog">SOG: 0.0 kt</div>
+    </div>
+
+    <script>
+        // 1. Register Service Worker for Offline Use
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        // 2. Compass Tracking (Device Orientation)
+        // iOS 10 and older natively support webkitCompassHeading without permission prompts
+        window.addEventListener('deviceorientation', function(event) {
+            if (event.webkitCompassHeading !== undefined) {
+                let heading = Math.round(event.webkitCompassHeading);
+                // Format to 3 digits (e.g., 007°)
+                document.getElementById('compass').innerText = String(heading).padStart(3, '0') + '°';
+            }
+        });
+
+        // 3. GPS Tracking (SOG & COG)
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(function(position) {
+                let coords = position.coords;
+
+                // SOG: Convert meters/second to Knots
+                if (coords.speed !== null && coords.speed >= 0) {
+                    let knots = (coords.speed * 1.94384).toFixed(1);
+                    document.getElementById('sog').innerText = 'SOG: ' + knots + ' kt';
+                } else {
+                    document.getElementById('sog').innerText = 'SOG: 0.0 kt';
+                }
+
+                // COG: Heading over ground
+                if (coords.heading !== null && coords.heading >= 0) {
+                    let cog = Math.round(coords.heading);
+                    document.getElementById('cog').innerText = 'COG: ' + String(cog).padStart(3, '0') + '°';
+                } else {
+                    document.getElementById('cog').innerText = 'COG: ---°';
+                }
+            }, function(error) {
+                console.log("GPS Error: " + error.message);
+            }, {
+                enableHighAccuracy: true, // Forces phone to use hardware GPS satellites
+                maximumAge: 0
+            });
+        } else {
+            alert("GPS not supported on this device.");
+        }
+    </script>
+</body>
+</html>
