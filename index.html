@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Race Master Pro</title>
+    <title>Race Master Elite</title>
     <style>
         * {
             box-sizing: border-box;
@@ -22,7 +22,7 @@
             overflow: hidden;
         }
 
-        /* System Lock Screen Overlay */
+        /* Initial Security System Unlock Cover */
         #overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -42,7 +42,7 @@
             border-radius: 12px;
         }
 
-        /* SCREEN 1: FULL SCREEN TIMER MODE */
+        /* SCREEN 1: ULTRA-MAX TIMER INTERFACE */
         #timer-screen {
             display: flex;
             flex-direction: column;
@@ -50,38 +50,57 @@
             align-items: center;
             height: 100vh;
             width: 100vw;
-            padding: 20px;
+            padding: 10px;
             position: absolute;
             top: 0; left: 0;
             z-index: 10;
             background: #000000;
         }
-        .timer-title {
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            color: #8E8E93;
-            margin-top: 20px;
+        
+        /* Time To Burn Data Header Banner */
+        .ttb-container {
+            width: 100%;
+            background: #111111;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-top: 15px;
         }
-        #timer-display {
-            font-size: 130px; /* Massive display */
+        .ttb-label {
+            font-size: 14px;
+            color: #8E8E93;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #ttb-value {
+            font-size: 32px;
             font-weight: 900;
             font-variant-numeric: tabular-nums;
-            line-height: 1;
         }
+
+        #timer-display {
+            font-size: 145px; /* Maximum readable width on iPhone 5 */
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            line-height: 0.9;
+            margin: auto 0;
+        }
+
         .timer-controls {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .timer-btn {
             flex: 1;
             background: #111111;
             color: #FFFF00;
             border: 3px solid #FFFF00;
-            padding: 18px;
-            font-size: 18px;
+            padding: 16px 5px;
+            font-size: 16px;
             font-weight: bold;
             border-radius: 8px;
         }
@@ -90,32 +109,32 @@
             color: #000000;
         }
 
-        /* SCREEN 2: FULL SCREEN TACTICAL MODE (Hidden initially) */
+        /* SCREEN 2: ACTIVE RACING HUD NAVIGATION */
         #tactical-screen {
-            display: none; /* Controlled via JS state */
+            display: none; 
             flex-direction: column;
             height: 100vh;
             width: 100vw;
-            padding: 10px;
+            padding: 8px;
             position: absolute;
             top: 0; left: 0;
             z-index: 5;
             background: #000000;
         }
         .compass-header {
-            flex: 1.8;
+            flex: 1.6;
             display: flex;
             justify-content: center;
             align-items: center;
             border-bottom: 4px solid #FFFF00;
         }
         #compass {
-            font-size: 120px;
+            font-size: 125px;
             font-weight: 900;
             font-variant-numeric: tabular-nums;
         }
         .tape-container {
-            flex: 0.6;
+            flex: 0.5;
             border-bottom: 4px solid #FFFF00;
             position: relative;
             overflow: hidden;
@@ -143,7 +162,7 @@
             display: inline-block;
         }
         .grid-container {
-            flex: 1.5;
+            flex: 1.3;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 6px;
@@ -159,15 +178,32 @@
             align-items: center;
         }
         .data-label {
-            font-size: 14px;
+            font-size: 13px;
             color: #8E8E93;
             font-weight: bold;
             text-transform: uppercase;
         }
         .data-value {
-            font-size: 46px;
+            font-size: 44px;
             font-weight: 800;
             font-variant-numeric: tabular-nums;
+        }
+        
+        /* Tactical Action Bar Footer */
+        .tactical-footer {
+            height: 60px;
+            margin-top: 6px;
+            width: 100%;
+        }
+        .reset-btn {
+            width: 100%;
+            height: 100%;
+            background: #222222;
+            color: #FFFF00;
+            border: 2px solid #FFFF00;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -178,8 +214,13 @@
     </div>
 
     <div id="timer-screen">
-        <div class="timer-title">Start Sequence</div>
+        <div class="ttb-container">
+            <div class="ttb-label">Time to Burn</div>
+            <div id="ttb-value">--:--</div>
+        </div>
+        
         <div id="timer-display">05:00</div>
+        
         <div class="timer-controls">
             <button class="timer-btn" onclick="adjustTimer(60)">+1M</button>
             <button class="timer-btn" onclick="adjustTimer(-60)">-1M</button>
@@ -206,10 +247,12 @@
                 <div class="data-value" id="sog">0.0</div>
             </div>
         </div>
+        <div class="tactical-footer">
+            <button class="reset-btn" onclick="switchToTimerMode()">RESET TIMER</button>
+        </div>
     </div>
 
     <script>
-        // DOM targets
         const timerScreen = document.getElementById('timer-screen');
         const tacticalScreen = document.getElementById('tactical-screen');
         const compassDisplay = document.getElementById('compass');
@@ -217,14 +260,15 @@
         const cogDisplay = document.getElementById('cog');
         const sogDisplay = document.getElementById('sog');
         const timerDisplay = document.getElementById('timer-display');
+        const ttbDisplay = document.getElementById('ttb-value');
         const runBtn = document.getElementById('run-btn');
 
-        // Math/Logic state machines
         let smoothedHeading = 0;
         const filterFactor = 0.25; 
         let timerSeconds = 300; 
         let timerInterval = null;
         let audioCtx = null;
+        let currentSogKnots = 0;
 
         function initCompassTape() {
             let html = '';
@@ -272,10 +316,42 @@
         function handleGPS(position) {
             let coords = position.coords;
             if (coords.speed !== null && coords.speed >= 0) {
-                sogDisplay.innerText = (coords.speed * 1.94384).toFixed(1);
+                currentSogKnots = coords.speed * 1.94384;
+                sogDisplay.innerText = currentSogKnots.toFixed(1);
+                calculateTimeToBurn();
             }
             if (coords.heading !== null && coords.heading >= 0) {
                 cogDisplay.innerText = String(Math.round(coords.heading)).padStart(3, '0') + '°';
+            }
+        }
+
+        function calculateTimeToBurn() {
+            // If stopped or drifting backward, there's no speed to calculate a burn profile
+            if (currentSogKnots < 0.5) {
+                ttbDisplay.innerText = "--:--";
+                ttbDisplay.style.color = "#FFFF00";
+                return;
+            }
+
+            // Predictive line distance mapping (assuming a standard 150-meter approach profile)
+            let estimatedDistanceMeters = 150; 
+            let speedMetersPerSecond = currentSogKnots / 1.94384;
+            let timeToLine = estimatedDistanceMeters / speedMetersPerSecond;
+
+            let timeToBurn = timerSeconds - timeToLine;
+            let absBurn = Math.abs(Math.round(timeToBurn));
+            let burnMins = Math.floor(absBurn / 60);
+            let burnSecs = absBurn % 60;
+            let formattedBurn = `${String(burnMins).padStart(2, '0')}:${String(burnSecs).padStart(2, '0')}`;
+
+            if (timeToBurn < 0) {
+                // OVER EARLY: Text turns red with a minus sign
+                ttbDisplay.innerText = `-${formattedBurn}`;
+                ttbDisplay.style.color = "#FF3B30"; 
+            } else {
+                // SAFE: Text stays bright yellow
+                ttbDisplay.innerText = formattedBurn;
+                ttbDisplay.style.color = "#FFFF00";
             }
         }
 
@@ -305,6 +381,7 @@
             let minutes = Math.floor(timerSeconds / 60);
             let seconds = timerSeconds % 60;
             timerDisplay.innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            calculateTimeToBurn();
         }
 
         function adjustTimer(amount) {
@@ -334,13 +411,26 @@
         }
 
         function switchToTacticalMode() {
-            // Kill countdown processing loops
             clearInterval(timerInterval);
             timerInterval = null;
-            
-            // Clean interface swap
             timerScreen.style.display = 'none';
             tacticalScreen.style.display = 'flex';
+        }
+
+        function switchToTimerMode() {
+            // Stop background metrics
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+            
+            // Re-instantiate default values
+            timerSeconds = 300; 
+            runBtn.innerText = "START";
+            runBtn.style.background = "#FFFF00";
+            updateTimerUI();
+            
+            // Swap screens back
+            tacticalScreen.style.display = 'none';
+            timerScreen.style.display = 'flex';
         }
 
         function runTick() {
@@ -361,11 +451,8 @@
                     speakText(`${timerSeconds}`);
                 }
             } else if (timerSeconds === 0) {
-                // START SIGNAL MATCHED
                 fireHorn(2.5);
                 speakText("Start");
-                
-                // Switch interface immediately
                 switchToTacticalMode();
             }
         }
